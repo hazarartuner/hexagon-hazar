@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour
 {
@@ -18,106 +18,76 @@ public class GameManager : MonoBehaviour
     [FoldoutGroup("Map Settings", true)]
     public float cellVerticalOffset = 0.25f;
 
-
     [FoldoutGroup("Prefabs", true), Required]
     public GameObject bomb;
     [FoldoutGroup("Prefabs", true)]
     public GameObject[] gems;
-    
-    public enum InstanceType { Empty, Gem, Bomb }
 
-    [Serializable]
-    public struct Cell
-    {
-        public GameObject instance;
-        public Transform transform;
-        public InstanceType type;
-        public int gemIndex;
-        public int bombIndex;
-    }
-    
 #region Private Fields
-    private Transform _transform;
-    private Cell[,] _map;
-    private int _gemAssetCount;
+    private readonly HexagonMap _map = new HexagonMap();
+    private readonly Dictionary<HexagonMap.Cell, GameObject> _instances = new Dictionary<HexagonMap.Cell, GameObject>();
 #endregion
+
+#region Lifecycle Methods
+    private void Awake()
+    {
+        _map.OnCellInstantiated += HandleCellInstantiated;
+        _map.OnCellDestroyed += HandleCellDestroyed;
+    }
 
     private void Start()
     {
-        _transform = transform;
-        _gemAssetCount = gems.Length;
-        
         GenerateMap();
     }
 
-    [Button]
-    public void GenerateMap()
+    private void OnDestroy()
     {
         ClearMap();
+        
+        _map.OnCellInstantiated -= HandleCellInstantiated;
+        _map.OnCellDestroyed -= HandleCellDestroyed;
+    }
+#endregion
 
-        _gemAssetCount = gems.Length;
-        _map = new Cell[columnCount,rowCount];
+    [Button, HideInEditorMode]
+    public void GenerateMap()
+    {
+        _map.columnCount = columnCount;
+        _map.rowCount = rowCount;
+        _map.cellWidth = cellWidth;
+        _map.cellHeight = cellHeight;
+        _map.cellHorizontalOffset = cellHorizontalOffset;
+        _map.cellVerticalOffset = cellVerticalOffset;
+        _map.gemAssetCount = gems.Length;
 
-        for (int i = 0; i < columnCount; i++)
-            for (int j = 0; j < rowCount; j++)
-                _map[i, j] = GenerateGemInstance(i, j);
+        _map.GenerateMap();
     }
 
-    [Button]
+    [Button, HideInEditorMode]
     private void ClearMap()
     {
-        if (_map == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < columnCount; i++)
-            for (int j = 0; j < rowCount; j++)
-                DestroyCellInstance(i, j);
-
-        _map = null;
+        _map.ClearMap();
     }
 
-    private Cell GenerateGemInstance(int columnIndex, int rowIndex, int gemIndex = -1)
+#region Event Handlers
+    private void HandleCellInstantiated(HexagonMap.Cell cell)
     {
-        if (gemIndex < 0)
-        {
-            gemIndex = Random.Range(0, _gemAssetCount);
-        }
-        
-        var instance = Instantiate(gems[gemIndex], _transform);
+        var instance = Instantiate(gems[cell.assetIndex], transform);
+        instance.transform.localPosition = cell.position;
 
-        instance.transform.localPosition = CalculateCellPosition(columnIndex, rowIndex);
-        
-        return new Cell {
-                instance = instance, 
-                transform = instance.transform, 
-                type = InstanceType.Gem, 
-                gemIndex = gemIndex
-            };
+        _instances[cell] = instance;
     }
 
-    private Vector3 CalculateCellPosition(int columnIndex, int rowIndex)
+    private void HandleCellDestroyed(HexagonMap.Cell cell)
     {
-        return new Vector3(
-            columnIndex * cellWidth - columnIndex * cellHorizontalOffset,
-            -(rowIndex * cellHeight + (columnIndex % 2) * cellVerticalOffset),
-            0
-        );
-    }
-
-    private void DestroyCellInstance(int columnIndex, int rowIndex)
-    {
-        if (!(_map[columnIndex, rowIndex].type > 0))
-        {
-            return;
-        }
+        var instance = _instances[cell];
         
-        DestroyImmediate(_map[columnIndex, rowIndex].instance);
-                    
-        _map[columnIndex, rowIndex].instance = null;
-        _map[columnIndex, rowIndex].transform = null;
-        _map[columnIndex, rowIndex].gemIndex = -1;
-        _map[columnIndex, rowIndex].bombIndex = -1;
+        if (instance != null)
+        {
+            DestroyImmediate(instance);
+            _instances[cell] = null;
+            _instances.Remove(cell);
+        }
     }
+#endregion
 }
