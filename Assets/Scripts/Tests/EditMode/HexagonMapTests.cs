@@ -1,5 +1,8 @@
-﻿using NUnit.Framework;
+﻿using System;
+using NUnit.Framework;
 using UnityEngine;
+using System.Collections.Generic;
+using Random = UnityEngine.Random;
 
 namespace Tests.EditMode
 {
@@ -12,11 +15,15 @@ namespace Tests.EditMode
         {
             _map = new HexagonMap
             {
+                columnCount = 5,
+                rowCount = 5,
                 cellWidth = 2.5f,
                 cellHeight = 2.5f,
                 cellHorizontalOffset = 1f,
                 cellVerticalOffset = 1f
             };
+            
+            _map.Instantiate(false);
         }
         
         [Test]
@@ -26,7 +33,7 @@ namespace Tests.EditMode
         }
 
         [Test]
-        public void TestsGemInstantiationInCell()
+        public void TestsFillingTheCell()
         {
             const int columnIndex = 2;
             const int rowIndex = 2;
@@ -41,7 +48,29 @@ namespace Tests.EditMode
                 position = _map.CalculateCellPosition(columnIndex, rowIndex),
             };
             
-            Assert.AreEqual(cell, _map.InstantiateCell(columnIndex, rowIndex, HexagonMap.CellType.Gem, 1));
+            Assert.AreEqual(cell, _map.SetCell(columnIndex, rowIndex, HexagonMap.CellType.Gem, 1));
+        }
+
+        [Test]
+        public void TestsClearingCell()
+        {
+            const int columnIndex = 2;
+            const int rowIndex = 2;
+            const int assetIndex = 0;
+            
+            var cell  = new HexagonMap.Cell()
+            {
+                columnIndex = 2,
+                rowIndex = 2,
+                assetIndex = -1,
+                cellType = HexagonMap.CellType.Empty,
+                position = Vector3.zero,
+            };
+            
+            _map.SetCell(columnIndex, rowIndex, HexagonMap.CellType.Gem, assetIndex);
+            _map.ClearCell(columnIndex, rowIndex);
+            
+            Assert.AreEqual(cell, _map.GetCell(columnIndex, rowIndex));
         }
     }
 }

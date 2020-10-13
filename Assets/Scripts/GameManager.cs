@@ -31,26 +31,26 @@ public class GameManager : MonoBehaviour
 #region Lifecycle Methods
     private void Awake()
     {
-        _map.OnCellInstantiated += HandleCellInstantiated;
-        _map.OnCellDestroyed += HandleCellDestroyed;
+        _map.OnCellSet += HandleCellSet;
+        _map.OnCellCleared += HandleCellCleared;
     }
 
     private void Start()
     {
-        GenerateMap();
+        InstantiateMap();
     }
 
     private void OnDestroy()
     {
-        ClearMap();
+        DestroyMap();
         
-        _map.OnCellInstantiated -= HandleCellInstantiated;
-        _map.OnCellDestroyed -= HandleCellDestroyed;
+        _map.OnCellSet -= HandleCellSet;
+        _map.OnCellCleared -= HandleCellCleared;
     }
 #endregion
 
     [Button, HideInEditorMode]
-    public void GenerateMap()
+    public void InstantiateMap()
     {
         _map.columnCount = columnCount;
         _map.rowCount = rowCount;
@@ -60,17 +60,17 @@ public class GameManager : MonoBehaviour
         _map.cellVerticalOffset = cellVerticalOffset;
         _map.gemAssetCount = gems.Length;
 
-        _map.GenerateMap();
+        _map.Instantiate();
     }
 
     [Button, HideInEditorMode]
-    private void ClearMap()
+    private void DestroyMap()
     {
-        _map.ClearMap();
+        _map.DestroyMap();
     }
 
 #region Event Handlers
-    private void HandleCellInstantiated(HexagonMap.Cell cell)
+    private void HandleCellSet(HexagonMap.Cell cell)
     {
         var instance = Instantiate(gems[cell.assetIndex], transform);
         instance.transform.localPosition = cell.position;
@@ -78,7 +78,7 @@ public class GameManager : MonoBehaviour
         _instances[cell] = instance;
     }
 
-    private void HandleCellDestroyed(HexagonMap.Cell cell)
+    private void HandleCellCleared(HexagonMap.Cell cell)
     {
         var instance = _instances[cell];
         
