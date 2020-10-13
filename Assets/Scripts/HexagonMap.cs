@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -25,11 +26,16 @@ public class HexagonMap
     [Serializable]
     public struct Cell
     {
-        public Vector3 position;
         public int columnIndex;
         public int rowIndex;
-        public int assetIndex;
         public CellType cellType;
+        public int assetIndex;
+        public Vector3 position;
+
+        public override string ToString()
+        {
+            return "columnIndex: " + columnIndex + ", rowIndex: " + rowIndex + ", cellType: " + cellType + ", assetIndex: " + assetIndex + ", position: " + position;
+        }
     }
     
 #region Private Fields
@@ -98,13 +104,7 @@ public class HexagonMap
     /// <returns>cell instance</returns>
     public Cell SetCell(int columnIndex, int rowIndex, CellType cellType = CellType.Empty, int assetIndex = -1)
     {
-        var cell = new Cell {
-            position = CalculateCellPosition(columnIndex, rowIndex),
-            assetIndex = assetIndex,
-            cellType = cellType,
-            columnIndex = columnIndex,
-            rowIndex = rowIndex
-        };
+        var cell = InstantiateCell(columnIndex, rowIndex, cellType, assetIndex);
         
         if (OnCellSet != null)
         {
@@ -114,6 +114,25 @@ public class HexagonMap
         _map[columnIndex, rowIndex] = cell;
 
         return cell;
+    }
+
+    /// <summary>
+    /// Instantiates a new cell but do not insert to the map.
+    /// </summary>
+    /// <param name="columnIndex">column index in map</param>
+    /// <param name="rowIndex">rom index in map</param>
+    /// <param name="cellType">type of cell</param>
+    /// <param name="assetIndex">asset index of selected cell type</param>
+    /// <returns>cell instance</returns>
+    public Cell InstantiateCell(int columnIndex, int rowIndex, CellType cellType = CellType.Empty, int assetIndex = -1)
+    {
+        return new Cell {
+            position = CalculateCellPosition(columnIndex, rowIndex),
+            assetIndex = assetIndex,
+            cellType = cellType,
+            columnIndex = columnIndex,
+            rowIndex = rowIndex
+        };
     }
 
     /// <summary>
@@ -162,5 +181,19 @@ public class HexagonMap
     public Cell? GetCell(int columnIndex, int rowIndex)
     {
         return _map?[columnIndex, rowIndex];
+    }
+    
+    /// <summary>
+    /// Sets multiple cells
+    /// </summary>
+    /// <param name="cells">filling cells' column/row coordinates list</param>
+    /// <param name="cellType">cell type to fill</param>
+    /// <param name="assetIndex">asset index of requested cell type</param>
+    public void SetCell(List<int[]> cells, CellType cellType, int assetIndex)
+    {
+        for (int i = 0, l=cells.Count; i < l; i++)
+        {
+            SetCell(cells[i][0], cells[i][1], cellType, assetIndex);
+        }
     }
 }
