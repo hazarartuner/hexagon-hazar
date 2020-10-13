@@ -6,10 +6,10 @@ public class HexagonMap
 {
     public int columnCount;
     public int rowCount;
-    public float cellWidth = 1f;
-    public float cellHeight = 1f;
-    public float cellHorizontalOffset = 0.25f;
-    public float cellVerticalOffset = 0.25f;
+    public float cellWidth = 2.5f;
+    public float cellHeight = 2.5f;
+    public float cellHorizontalOffset = 0.635f;
+    public float cellVerticalOffset = 1.25f;
     public int gemAssetCount;
 
     public event Action<Cell> OnCellInstantiated;
@@ -63,7 +63,7 @@ public class HexagonMap
         _map = null;
     }
     
-    private Cell InstantiateCell(int columnIndex, int rowIndex, CellType cellType, int assetIndex)
+    public Cell InstantiateCell(int columnIndex, int rowIndex, CellType cellType, int assetIndex)
     {
         var cell = new Cell {
             position = CalculateCellPosition(columnIndex, rowIndex),
@@ -81,7 +81,7 @@ public class HexagonMap
         return cell;
     }
 
-    private Vector3 CalculateCellPosition(int columnIndex, int rowIndex)
+    public Vector3 CalculateCellPosition(int columnIndex, int rowIndex)
     {
         return new Vector3(
             columnIndex * cellWidth - columnIndex * cellHorizontalOffset,
@@ -103,5 +103,10 @@ public class HexagonMap
         }
 
         _map[columnIndex, rowIndex].assetIndex = -1;
+    }
+
+    public int Sum(int x, int y)
+    {
+        return x + y;
     }
 }
