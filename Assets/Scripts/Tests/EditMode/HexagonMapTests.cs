@@ -1,6 +1,8 @@
-﻿using NUnit.Framework;
+﻿using System;
+using NUnit.Framework;
 using UnityEngine;
 using System.Collections.Generic;
+using Unity.PerformanceTesting;
 
 namespace Tests.EditMode
 {
@@ -13,15 +15,16 @@ namespace Tests.EditMode
         {
             _map = new HexagonMap
             {
-                columnCount = 5,
-                rowCount = 5,
+                columnCount = 10,
+                rowCount = 15,
                 cellWidth = 2.5f,
                 cellHeight = 2.5f,
                 cellHorizontalOffset = 1f,
-                cellVerticalOffset = 1f
+                cellVerticalOffset = 1f,
+                gemAssetCount = 5
             };
             
-            _map.Instantiate(false);
+            _map.Instantiate(true, 0);
         }
         
         [Test]
@@ -99,6 +102,115 @@ namespace Tests.EditMode
             Assert.AreEqual(cell2, mapCell2);
             Assert.AreEqual(cell3, mapCell3);
             Assert.AreEqual(cell4, mapCell4);
+        }
+
+        [Test]
+        public void TestsDirections()
+        {
+            Assert.AreEqual(new Vector2Int(0, -1), HexagonMap.Top);
+            Assert.AreEqual(new Vector2Int(1, 0), HexagonMap.TopRightEven);
+            Assert.AreEqual(new Vector2Int(1, -1), HexagonMap.TopRightOdd);
+            Assert.AreEqual(new Vector2Int(1, 1), HexagonMap.BottomRightEven);
+            Assert.AreEqual(new Vector2Int(1, 0), HexagonMap.BottomRightOdd);
+            Assert.AreEqual(new Vector2Int(0, 1), HexagonMap.Bottom);
+            Assert.AreEqual(new Vector2Int(-1, 1), HexagonMap.BottomLeftEven);
+            Assert.AreEqual(new Vector2Int(-1, 0), HexagonMap.BottomLeftOdd);
+            Assert.AreEqual(new Vector2Int(-1, 0), HexagonMap.TopLeftEven);
+            Assert.AreEqual(new Vector2Int(-1, -1), HexagonMap.TopLeftOdd);
+        }
+
+        [Test]
+        public void TestsSiblingDirections()
+        {
+            var siblingDirectionsEven = new [] {
+                HexagonMap.Top, HexagonMap.TopRightEven, HexagonMap.BottomRightEven, HexagonMap.Bottom, HexagonMap.BottomLeftEven, HexagonMap.TopLeftEven, HexagonMap.Top
+            };
+            
+            var siblingDirectionsOdd = new [] {
+                HexagonMap.Top, HexagonMap.TopRightOdd, HexagonMap.BottomRightOdd, HexagonMap.Bottom, HexagonMap.BottomLeftOdd, HexagonMap.TopLeftOdd, HexagonMap.Top
+            };
+            
+            
+            Assert.AreEqual(siblingDirectionsEven, HexagonMap.SiblingDirectionsEven);
+            Assert.AreEqual(siblingDirectionsOdd, HexagonMap.SiblingDirectionsOdd);
+        }
+        
+        [Test]
+        public void TestsFindMatchedSiblings()
+        {
+            List<int[]> fillCellCoordinates = new List<int[]>() {
+                new [] { 0, 1},
+                new [] { 1, 0},
+                new [] { 1, 1},
+                new [] { 2, 1},
+                new [] { 2, 2},
+                new [] { 0, 2},
+            };
+            
+            _map.SetCell(fillCellCoordinates, HexagonMap.CellType.Gem, 0);
+
+            var matchedCells =_map.FindMatchedSiblings(1, 1);
+
+            Assert.AreEqual(fillCellCoordinates.Count, matchedCells.Length);
+            
+            foreach (var cellCoordinate in fillCellCoordinates)
+            {
+                Assert.Contains(_map.InstantiateCell(cellCoordinate[0], cellCoordinate[1], HexagonMap.CellType.Gem, 0), matchedCells);
+            }
+        }
+        
+        [Test]
+        public void TestsFindMatchedAllSiblings()
+        {
+            List<int[]> fillCellCoordinates = new List<int[]>() {
+                new [] { 0, 1},
+                new [] { 1, 0},
+                new [] { 1, 1},
+                new [] { 2, 1},
+                new [] { 2, 2},
+                new [] { 0, 2},
+                new [] { 2, 0},
+                new [] { 3, 0},
+            };
+            
+            _map.SetCell(fillCellCoordinates, HexagonMap.CellType.Gem, 0);
+
+            var matchedCells =_map.FindMatchedAllSiblings(0, 1);
+
+            Assert.AreEqual(fillCellCoordinates.Count, matchedCells.Length);
+            
+            foreach (var cellCoordinate in fillCellCoordinates)
+            {
+                Assert.Contains(_map.InstantiateCell(cellCoordinate[0], cellCoordinate[1], HexagonMap.CellType.Gem, 0), matchedCells);
+            }
+        }
+        
+        [Test, Performance]
+        public void TestsMatchingPerformance()
+        {
+            List<int[]> fillCellCoordinates = new List<int[]>() {
+                new [] { 0, 1},
+                new [] { 1, 0},
+                new [] { 1, 1},
+                new [] { 2, 1},
+                new [] { 2, 2},
+                new [] { 0, 2},
+                new [] { 2, 0},
+                new [] { 3, 0},
+            };
+            
+            _map.SetCell(fillCellCoordinates, HexagonMap.CellType.Gem, 0);
+
+            Measure.Method(() =>
+            {
+                for (int i = 0; i < _map.columnCount; i++)
+                {
+                    for (int j = 0; j < _map.rowCount; j++)
+                    {
+                        _map.FindMatchedAllSiblings(i, j);
+                    }
+                }
+            }).Run();
         }
     }
 }
